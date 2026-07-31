@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Panel de bots · Terminal</title>
 <style>
   :root{
@@ -66,6 +68,30 @@
   .foot .amb{color:var(--amb);}
   .cursor{color:var(--grn);}
   @media (prefers-reduced-motion:no-preference){.cursor{animation:blink 1.1s step-end infinite;}}
+
+  /* --- pantallas chicas (celular) --- */
+  @media (max-width:540px){
+    body{overflow-x:hidden;}
+    .scr{padding:.7rem;}
+    .bar,.sys{padding:.55rem .8rem;}
+    .bar{gap:.5rem;}
+    .live{font-size:.68rem;}
+    .body{padding:.3rem .8rem .8rem;}
+    .block{padding:.9rem 0;}
+    .eq{font-size:1.5rem;}
+    .eq .u{font-size:.72rem;}
+    .row1{gap:.5rem;}
+    .spark{width:100%;max-width:100%;height:38px;}
+    .stats{gap:.3rem;}
+    .st{font-size:.72rem;padding:.28rem .5rem;}
+    /* PnL: etiqueta + valor arriba, nota en su propia linea */
+    .prow{grid-template-columns:1fr auto;gap:.05rem .5rem;}
+    .prow .nt{grid-column:1 / -1;justify-self:start;text-align:left;margin-top:.1rem;}
+    .prow .v{font-size:.98rem;}
+    /* operaciones: columnas mas compactas */
+    .t{grid-template-columns:4.8rem 2.4rem 1fr auto;gap:.35rem;font-size:.72rem;}
+    .foot{padding:.8rem .8rem 1rem;}
+  }
 </style>
 
 <div class="scr">
