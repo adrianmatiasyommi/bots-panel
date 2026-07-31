@@ -1,0 +1,321 @@
+<title>Panel de bots · Terminal</title>
+<style>
+  :root{
+    --bg:#090C10; --panel:#0B0F14; --line:#18212A; --faint:#33424B;
+    --txt:#B7C6BF; --bright:#E9FFF3; --lbl:#5C7268;
+    --grn:#43D17F; --grn-dim:#2C8F5D; --red:#FF6B5C; --amb:#E0B54A;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .scr{max-width:860px;margin:0 auto;padding:clamp(.9rem,3vw,1.6rem);}
+  .win{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.7rem 1rem;border-bottom:1px solid var(--line);background:#0d1219;flex-wrap:wrap;}
+  .bar .brand{color:var(--lbl);font-size:.76rem;letter-spacing:.06em;}
+  .bar .brand b{color:var(--grn);font-weight:600;}
+  .live{color:var(--grn);font-size:.74rem;letter-spacing:.04em;display:inline-flex;align-items:center;gap:.45rem;}
+  .live .d{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;}
+  .live.stale{color:var(--amb);} .live.stale .d{background:var(--amb);}
+  .live.down{color:var(--red);} .live.down .d{background:var(--red);}
+  @media (prefers-reduced-motion:no-preference){.live .d{animation:blink 1.8s ease-in-out infinite;}}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .sys{display:flex;gap:.4rem 1.2rem;flex-wrap:wrap;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--line);font-size:.76rem;color:var(--lbl);}
+  .sys .on{color:var(--txt);} .sys .on i{color:var(--grn);font-style:normal;}
+  .sys .on.off i{color:var(--red);}
+  .sys .k{color:var(--lbl);} .sys .k b{color:var(--txt);font-weight:400;}
+
+  .body{padding:.4rem 1rem 1rem;}
+  .block{padding:1.1rem 0;border-bottom:1px solid var(--line);}
+  .block:last-child{border-bottom:none;}
+  .bh{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem;}
+  .bh .tag{color:var(--bg);background:var(--grn);font-weight:700;font-size:.72rem;letter-spacing:.08em;padding:.15rem .5rem;border-radius:5px;}
+  .bh .tag.idle{background:var(--faint);color:var(--txt);}
+  .bh .desc{color:var(--lbl);font-size:.76rem;}
+
+  .row1{display:flex;justify-content:space-between;align-items:flex-end;gap:1.2rem;flex-wrap:wrap;}
+  .eq{font-size:2rem;font-weight:600;color:var(--bright);letter-spacing:-.01em;line-height:1.1;}
+  .eq .u{font-size:.82rem;color:var(--lbl);font-weight:400;}
+  .eq .tail{display:block;font-size:.74rem;color:var(--lbl);margin-top:.2rem;letter-spacing:.02em;}
+  .spark{width:230px;max-width:48vw;height:46px;display:block;}
+
+  .stats{display:flex;gap:.35rem .5rem;flex-wrap:wrap;margin:.9rem 0 .7rem;}
+  .st{border:1px solid var(--line);border-radius:7px;padding:.3rem .6rem;font-size:.76rem;color:var(--lbl);}
+  .st b{color:var(--txt);font-weight:400;} .st b.g{color:var(--grn);} .st b.r{color:var(--red);}
+  .pnl{margin:.55rem 0;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:#0d1319;}
+  .prow{display:grid;grid-template-columns:9rem auto 1fr;gap:.35rem .6rem;align-items:baseline;padding:.2rem 0;}
+  .prow+.prow{border-top:1px solid #121a21;}
+  .prow .k{color:var(--lbl);font-size:.73rem;letter-spacing:.03em;}
+  .prow .v{font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;}
+  .prow.neg .v{color:var(--red);} .prow.pos .v{color:var(--grn);} .prow.zero .v{color:var(--lbl);}
+  .prow .nt{color:var(--faint);font-size:.7rem;justify-self:end;text-align:right;}
+  .pos{font-size:.86rem;margin:.2rem 0 .1rem;}
+  .pos .lng{color:var(--grn);font-weight:600;} .pos .sht{color:var(--red);font-weight:600;} .pos .flt{color:var(--lbl);} .pos .px{color:var(--lbl);}
+
+  .tl{margin-top:.85rem;}
+  .tl .cap{color:var(--lbl);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem;}
+  .t{display:grid;grid-template-columns:6.5rem 3rem 1fr auto;gap:.5rem;padding:.26rem 0;border-bottom:1px solid #121a21;font-size:.78rem;font-variant-numeric:tabular-nums;}
+  .t:last-child{border-bottom:none;}
+  .t .tm{color:var(--lbl);} .t .sd{font-weight:700;font-size:.72rem;letter-spacing:.03em;}
+  .t .buy{color:var(--grn);} .t .sell{color:var(--red);} .t .qt{color:var(--txt);} .t .pr{text-align:right;color:var(--txt);}
+  .wait{color:var(--lbl);font-size:.82rem;margin-top:.6rem;}
+  .wait .c{color:var(--grn);}
+
+  .foot{padding:.9rem 1rem 1.1rem;border-top:1px solid var(--line);color:var(--faint);font-size:.72rem;}
+  .foot p{margin:.3rem 0;max-width:74ch;line-height:1.6;}
+  .foot .amb{color:var(--amb);}
+  .cursor{color:var(--grn);}
+  @media (prefers-reduced-motion:no-preference){.cursor{animation:blink 1.1s step-end infinite;}}
+</style>
+
+<div class="scr">
+  <div class="win">
+    <div class="bar">
+      <span class="brand">◢ <b>bots</b> // binance testnet · paper <span class="cursor">▍</span></span>
+      <span class="live" id="live"><span class="d"></span><span id="live-txt">conectando…</span></span>
+    </div>
+    <div class="sys" id="sys"></div>
+    <div class="body" id="body"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== ÚNICO valor a tocar si cambiás el nombre de usuario/repo de datos =====
+  // La VM empuja data.json a este repo público; la página lo lee de acá (raw).
+  var DATA_URL = "https://raw.githubusercontent.com/adrianmatiasyommi/bots-data/main/data.json";
+
+  // ---- fallback de demostración (se usa si aún no hay data.json accesible) ----
+  var DEMO = {
+    generated_at: "2026-07-31T11:42:00Z",
+    network: "testnet",
+    demo: true,
+    health: {spot:true, futuros:true, monitor:true, uptime:"24h", ws_stalls:0, errores:0},
+    spot: {
+      label:"spot", available:true, equity:76180.12, cash:57427.07,
+      position:[{symbol:"ETHUSDT", qty:9.9551, avg:1902.00, mark:1877.16, unrealized:-247.28}],
+      kill_ok:true, n_trades:9, last_trade_ts:"2026-07-30T13:00:00Z",
+      recent_trades:[
+        {ts:"2026-07-30T13:00:00Z", symbol:"ETHUSDT", side:"VENTA", qty:0.0397, price:1925.29},
+        {ts:"2026-07-30T05:00:00Z", symbol:"ETHUSDT", side:"COMPRA", qty:9.9948, price:1902.00},
+        {ts:"2026-07-29T21:00:00Z", symbol:"ETHUSDT", side:"VENTA", qty:9.9887, price:1884.15},
+        {ts:"2026-07-29T08:00:00Z", symbol:"ETHUSDT", side:"VENTA", qty:0.1705, price:1923.59},
+        {ts:"2026-07-28T13:00:00Z", symbol:"ETHUSDT", side:"VENTA", qty:0.0053, price:1892.61},
+        {ts:"2026-07-28T03:00:00Z", symbol:"ETHUSDT", side:"COMPRA", qty:0.3477, price:1876.14}
+      ],
+      equity_series:[76718.04,76408.29,76360.75,76360.75,76360.75,76360.75,76360.75,76360.75,76360.75,76360.75,76360.75,76400.03,76353.25,76373.24,76490.58,76520.46,76569.54,76531.76,76598.9,76640.31,76515.98,76530.71,76534.39,76550.22,76507.61,76582.67,76555.0,76529.41,76597.11,76530.01,76508.11,76444.8,76383.07,76432.15,76401.19,76402.89,76372.02,76246.79,76245.89,76179.89],
+      realized_total:-156.46, realized_by_symbol:{ETHUSDT:-156.46}, unrealized_total:-247.28
+    },
+    futuros: {
+      label:"futuros", available:true, equity:5000, cash:5000,
+      position:[], kill_ok:true, n_trades:0, last_trade_ts:null,
+      recent_trades:[], equity_series:[5000,5000,5000,5000,5000,5000,5000,5000],
+      realized_total:null, realized_by_symbol:{}, unrealized_total:null
+    }
+  };
+
+  // ---- configuración estática por bot (etiquetas que no vienen en el snapshot) ----
+  var BOTS = [
+    {key:"spot",    title:"SPOT",    desc:"ma_cross 50/200 · 1h · BTC ETH SOL",       color:"#43D17F",
+     waiting:null},
+    {key:"futuros", title:"FUTUROS", desc:"z-score 30/2.0 · 1d · BTC ETH · corto 1x", color:"#5C7268",
+     waiting:'esperando señal <span class="c">±2σ</span> — evalúa cada día y elige esperar'}
+  ];
+
+  // ---------- helpers de formato ----------
+  var MINUS = "−"; // − visible
+  function grp(n, dec){
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    var s = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    return (n<0?MINUS:"")+s;
+  }
+  function signed(n, dec){
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    var s = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    return (n<0?MINUS:"+")+s;
+  }
+  function price(n){
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    var dec = Math.abs(n)>=100?2:(Math.abs(n)>=1?4:6);
+    return n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:dec});
+  }
+  function qtyFmt(n){
+    if(n===null||n===undefined||isNaN(n)) return "—";
+    return Math.abs(n).toLocaleString("en-US",{maximumFractionDigits:4});
+  }
+  function base(sym){ return (sym||"").replace(/USDT$/,"").replace(/USD$/,""); }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+  function pad2(x){ return (x<10?"0":"")+x; }
+  function fmtTs(iso){
+    if(!iso) return "—";
+    var d = new Date(iso); if(isNaN(d)) return "—";
+    return pad2(d.getUTCDate())+"/"+pad2(d.getUTCMonth()+1)+" "+pad2(d.getUTCHours())+":"+pad2(d.getUTCMinutes());
+  }
+  function fmtClock(iso){
+    var d = iso?new Date(iso):null; if(!d||isNaN(d)) return "—";
+    return d.getUTCFullYear()+"-"+pad2(d.getUTCMonth()+1)+"-"+pad2(d.getUTCDate())+" "+pad2(d.getUTCHours())+":"+pad2(d.getUTCMinutes())+" UTC";
+  }
+
+  // ---------- sparkline ----------
+  function sparkSVG(data, col){
+    data = (data||[]).filter(function(v){return typeof v==="number"&&!isNaN(v);});
+    var W=230,H=46,pad=3,n=data.length;
+    if(n<2) return '<svg class="spark" viewBox="0 0 '+W+' '+H+'"></svg>';
+    var mn=Math.min.apply(null,data),mx=Math.max.apply(null,data),rng=(mx-mn)||1;
+    var xs=function(i){return (pad+(W-2*pad)*(i/(n-1))).toFixed(1);};
+    var ys=function(v){return (pad+(H-2*pad)*(1-(v-mn)/rng)).toFixed(1);};
+    var pts=data.map(function(v,i){return xs(i)+","+ys(v);}).join(" ");
+    var area="M"+pad+","+(H-pad)+" L"+pts.split(" ").join(" L")+" L"+(W-pad)+","+(H-pad)+" Z";
+    return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="tendencia del equity">'
+      +'<path d="'+area+'" fill="'+col+'" opacity="0.12"/>'
+      +'<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+      +'<circle cx="'+xs(n-1)+'" cy="'+ys(data[n-1])+'" r="2.5" fill="'+col+'"/></svg>';
+  }
+
+  // ---------- render de un bot ----------
+  function pnlRow(label, val, note){
+    var cls = val===null||val===undefined ? "zero" : (val<0?"neg":(val>0?"pos":"zero"));
+    var v = (val===null||val===undefined) ? "—" : signed(val,2)+" USDT";
+    return '<div class="prow '+cls+'"><span class="k">'+label+'</span><span class="v">'+v+'</span><span class="nt">'+note+'</span></div>';
+  }
+
+  function renderBot(cfg, d){
+    if(!d || d.available===false){
+      return '<div class="block"><div class="bh"><span class="tag idle">'+cfg.title+'</span>'
+        +'<span class="desc">'+cfg.desc+'</span></div>'
+        +'<div class="wait">&gt; sin datos disponibles para este bot</div></div>';
+    }
+    var poss = d.position||[];
+    var active = (d.n_trades||0)>0 || poss.length>0;
+    var tag = active ? '<span class="tag">'+cfg.title+'</span>' : '<span class="tag idle">'+cfg.title+'</span>';
+
+    // tail bajo el equity
+    var tail;
+    if((d.n_trades||0)===0 && poss.length===0){ tail="= sin cambios · sin operar aún"; }
+    else{
+      var s=d.equity_series||[]; var pc = (s.length>=2 && s[0]) ? (s[s.length-1]-s[0])/s[0]*100 : null;
+      if(pc===null){ tail="≈ estado actual"; }
+      else if(Math.abs(pc)<0.1){ tail="≈ plano · "+signed(pc,1)+"% en la ventana"; }
+      else{ tail="acumulado "+signed(pc,1)+"% en la ventana"; }
+    }
+
+    // stats
+    var last = d.last_trade_ts ? fmtTs(d.last_trade_ts) : "—";
+    var killHtml = d.kill_ok ? '<b class="g">OK</b>' : '<b class="r">TRIP</b>';
+    var stats = '<div class="stats">'
+      +'<span class="st">cash <b>'+grp(d.cash,0)+'</b></span>'
+      +'<span class="st">trades <b>'+(d.n_trades||0)+'</b></span>'
+      +'<span class="st">kill '+killHtml+'</span>'
+      +'<span class="st">última <b>'+last+'</b></span></div>';
+
+    // pnl
+    var rt = d.realized_total;
+    var rNote = "operaciones cerradas";
+    if(rt!==null&&rt!==undefined){
+      var syms = Object.keys(d.realized_by_symbol||{});
+      if(syms.length===1){ rNote = base(syms[0])+" · operaciones cerradas"; }
+    } else { rNote = "sin operaciones cerradas"; }
+    var ut = d.unrealized_total;
+    var uNote;
+    if(ut!==null&&ut!==undefined && poss.length){
+      var p0=poss[0];
+      uNote = base(p0.symbol)+" abierto · "+(p0.mark!=null?price(p0.mark):"?")+" vs "+price(p0.avg);
+    } else { uNote = "sin posición abierta"; }
+    var pnl = '<div class="pnl">'+pnlRow("PnL realizado", rt, rNote)+pnlRow("No realizado", ut, uNote)+'</div>';
+
+    // posición
+    var posLine;
+    if(poss.length){
+      var p=poss[0]; var long = p.qty>=0;
+      posLine = '<div class="pos">POS <span class="'+(long?"lng":"sht")+'">'+(long?"▲ LONG ":"▼ SHORT ")
+        +qtyFmt(p.qty)+" "+base(p.symbol)+'</span> <span class="px">@ '+price(p.avg)+'</span></div>';
+    } else {
+      posLine = '<div class="pos">POS <span class="flt">── FLAT · sin posiciones</span></div>';
+    }
+
+    // trades o mensaje de espera
+    var tail2="";
+    if((d.recent_trades||[]).length){
+      var rows = d.recent_trades.slice(0,6).map(function(t){
+        var buy = /COMPRA|BUY/i.test(t.side||"") || (t.qty!=null && t.side==null && t.qty>0);
+        return '<div class="t"><span class="tm">'+fmtTs(t.ts)+'</span>'
+          +'<span class="sd '+(buy?"buy":"sell")+'">'+(buy?"BUY":"SELL")+'</span>'
+          +'<span class="qt">'+qtyFmt(t.qty)+" "+base(t.symbol)+'</span>'
+          +'<span class="pr">'+price(t.price)+'</span></div>';
+      }).join("");
+      tail2 = '<div class="tl"><div class="cap">operaciones recientes</div>'+rows+'</div>';
+    } else if(cfg.waiting){
+      tail2 = '<div class="wait">&gt; '+cfg.waiting+'</div>';
+    }
+
+    return '<div class="block"><div class="bh">'+tag+'<span class="desc">'+cfg.desc+'</span></div>'
+      +'<div class="row1"><div class="eq">'+grp(d.equity,0)+' <span class="u">USDT</span>'
+      +'<span class="tail">'+tail+'</span></div>'+sparkSVG(d.equity_series,cfg.color)+'</div>'
+      +stats+pnl+posLine+tail2+'</div>';
+  }
+
+  // ---------- barra SYS ----------
+  function renderSys(data){
+    var h = data.health||{};
+    function dot(name,up){ return '<span class="on'+(up===false?" off":"")+'"><i>●</i> '+name+'</span>'; }
+    var parts=[ '<span class="k">SYS</span>' ];
+    parts.push(dot("spot", h.spot));
+    parts.push(dot("futuros", h.futuros));
+    if(h.monitor!==undefined) parts.push(dot("monitor", h.monitor));
+    if(h.uptime) parts.push('<span class="k">uptime <b>'+esc(h.uptime)+'</b></span>');
+    if(h.ws_stalls!==undefined) parts.push('<span class="k">ws-stalls <b>'+h.ws_stalls+'</b></span>');
+    if(h.errores!==undefined) parts.push('<span class="k">errores <b>'+h.errores+'</b></span>');
+    return parts.join("");
+  }
+
+  // ---------- cabecera LIVE + frescura ----------
+  function renderLive(data){
+    var el=document.getElementById("live"), txt=document.getElementById("live-txt");
+    el.className="live";
+    var gen = data.generated_at?new Date(data.generated_at):null;
+    var ageMin = (gen&&!isNaN(gen)) ? (Date.now()-gen.getTime())/60000 : null;
+    var stamp = fmtClock(data.generated_at);
+    if(data.demo){ el.className="live stale"; txt.textContent="DEMO · "+stamp; return; }
+    if(ageMin===null){ txt.textContent=stamp; return; }
+    if(ageMin>30){ el.className="live down"; txt.textContent="SIN ACTUALIZAR · "+stamp; }
+    else if(ageMin>12){ el.className="live stale"; txt.textContent="ATRASADO "+Math.round(ageMin)+"m · "+stamp; }
+    else{ txt.textContent="LIVE · "+stamp; }
+  }
+
+  function renderFoot(data){
+    var sp=data.spot||{}, rt=sp.realized_total, ut=sp.unrealized_total;
+    var tot = (rt!=null?rt:0)+(ut!=null?ut:0);
+    var p1='<p><span class="amb">testnet · plata de juguete.</span> el equity de spot está inflado por las monedas de regalo del testnet — no es ganancia. la señal limpia es el <b style="color:var(--txt)">PnL</b>: '
+      +'realizado <b style="color:var(--red)">'+signed(rt,0)+'</b> (cerrado) + no realizado <b style="color:var(--red)">'+signed(ut,0)+'</b> (posición abierta) ≈ <b style="color:var(--red)">'+signed(tot,0)+' USDT</b>. aproximado por las freebies del testnet.</p>';
+    var p2='<p>se actualiza solo · la VM empuja una foto cada ~5 min → almacén → esta web. última foto: '+fmtClock(data.generated_at)+'.'+(data.demo?' <span class="amb">(mostrando demo — sin conexión al almacén)</span>':'')+'</p>';
+    return p1+p2;
+  }
+
+  // ---------- pintar todo ----------
+  function paint(data){
+    document.getElementById("sys").innerHTML = renderSys(data);
+    document.getElementById("body").innerHTML = BOTS.map(function(c){ return renderBot(c, data[c.key]); }).join("");
+    document.getElementById("foot").innerHTML = renderFoot(data);
+    renderLive(data);
+  }
+
+  // ---------- carga + auto-refresh ----------
+  var lastGood = null;
+  function load(){
+    // cache-buster por minuto: fresco sin martillar el CDN de GitHub
+    var url = DATA_URL + (DATA_URL.indexOf("?")<0?"?":"&") + "_=" + Math.floor(Date.now()/60000);
+    fetch(url, {cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("http "+r.status); return r.json(); })
+      .then(function(j){ lastGood=j; paint(j); })
+      .catch(function(){
+        if(lastGood){ renderLive(lastGood); }   // mantené lo último bueno, marcá frescura
+        else { paint(DEMO); }                    // primera carga sin almacén → demo
+      });
+  }
+  load();
+  setInterval(load, 60000);
+})();
+</script>
