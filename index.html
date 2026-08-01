@@ -254,7 +254,9 @@
     if(cfg.carry){
       var cbase = function(s){ return (s||"").replace(/\.PERP$/,"").replace(/USDT$/,""); };
       var legs = (d.position||[]).filter(function(p){ return Math.abs(p.qty||0) > 1e-9; });
-      var inCarry = legs.length > 0;
+      // "en carry" solo si existe la pata PERP (que únicamente crea el bot al abrir);
+      // un BNB spot suelto (freebie del testnet) NO cuenta como carry abierto.
+      var inCarry = legs.some(function(p){ return /\.PERP$/.test(p.symbol||""); });
       var cTag = '<span class="tag'+(inCarry?'':' idle')+'"'+(inCarry?' style="background:'+cfg.color+'"':'')+'>'+cfg.title+'</span>';
       var head = inCarry ? '◆ EN CARRY' : '── ESPERANDO';
       var htail = inCarry ? 'delta-neutral · cobrando funding' : 'funding bajo el umbral (abre en ≥ 1 bps)';
