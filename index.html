@@ -147,6 +147,17 @@
       position:[], kill_ok:true, n_trades:0, last_trade_ts:null,
       recent_trades:[], equity_series:[5000,5000,5000,5000,5000,5000,5000,5000],
       realized_total:null, realized_by_symbol:{}, unrealized_total:null
+    },
+    scalp: {
+      label:"scalp", available:true, equity:4985.30, cash:4985.30,
+      position:[{symbol:"SOLUSDT", qty:-2.1, avg:182.40, mark:182.90, unrealized:-1.05}],
+      kill_ok:true, n_trades:37, last_trade_ts:"2026-08-01T15:41:00Z",
+      recent_trades:[
+        {ts:"2026-08-01T15:41:00Z", symbol:"SOLUSDT", side:"VENTA", qty:2.1, price:182.40},
+        {ts:"2026-08-01T15:35:00Z", symbol:"SOLUSDT", side:"COMPRA", qty:2.0, price:182.95}
+      ],
+      equity_series:[5000,4998,4996,4995,4993,4991,4992,4989,4987,4985.3],
+      realized_total:-14.70, realized_by_symbol:{SOLUSDT:-14.70}, unrealized_total:-1.05
     }
   };
 
@@ -155,7 +166,9 @@
     {key:"spot",    title:"SPOT",    desc:"ma_cross 50/200 · 1h · BTC ETH SOL",       color:"#43D17F",
      waiting:null},
     {key:"futuros", title:"FUTUROS", desc:"z-score 30/2.0 · 1d · BTC ETH · corto 1x", color:"#5C7268",
-     waiting:'esperando señal <span class="c">±2σ</span> — evalúa cada día y elige esperar'}
+     waiting:'esperando señal <span class="c">±2σ</span> — evalúa cada día y elige esperar'},
+    {key:"scalp",   title:"SCALP",   desc:"scalp_meanrev · 1m · SOLUSDT · experimento", color:"#DBAA46",
+     waiting:'esperando ±2σ en 1m — experimento (ya sabemos que pierde)'}
   ];
 
   // ---------- helpers de formato ----------
@@ -297,6 +310,7 @@
     var parts=[ '<span class="k">SYS</span>' ];
     parts.push(dot("spot", h.spot));
     parts.push(dot("futuros", h.futuros));
+    if(h.scalp!==undefined) parts.push(dot("scalp", h.scalp));
     if(h.monitor!==undefined) parts.push(dot("monitor", h.monitor));
     if(h.uptime) parts.push('<span class="k">uptime <b>'+esc(h.uptime)+'</b></span>');
     if(h.ws_stalls!==undefined) parts.push('<span class="k">ws-stalls <b>'+h.ws_stalls+'</b></span>');
