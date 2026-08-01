@@ -234,7 +234,7 @@
         +'<span class="desc">'+cfg.desc+'</span></div>'
         +'<div class="wait">&gt; sin datos disponibles para este bot</div></div>';
     }
-    var poss = d.position||[];
+    var poss = (d.position||[]).filter(function(p){ return Math.abs(p.qty||0) > 1e-9; });
     var active = (d.n_trades||0)>0 || poss.length>0;
     var tag = active ? '<span class="tag">'+cfg.title+'</span>' : '<span class="tag idle">'+cfg.title+'</span>';
 
