@@ -158,6 +158,19 @@
       ],
       equity_series:[5000,4998,4996,4995,4993,4991,4992,4989,4987,4985.3],
       realized_total:-14.70, realized_by_symbol:{SOLUSDT:-14.70}, unrealized_total:-1.05
+    },
+    carry: {
+      label:"carry", available:true, equity:81570, cash:0,
+      position:[
+        {symbol:"BNBUSDT", qty:0.34, avg:588.0, mark:589.2, unrealized:0.41},
+        {symbol:"BNBUSDT.PERP", qty:-0.34, avg:589.1, mark:null, unrealized:null}
+      ],
+      kill_ok:true, n_trades:2, last_trade_ts:"2026-08-01T18:00:00Z",
+      recent_trades:[
+        {ts:"2026-08-01T18:00:00Z", symbol:"BNBUSDT.PERP", side:"VENTA", qty:0.34, price:589.10},
+        {ts:"2026-08-01T18:00:00Z", symbol:"BNBUSDT", side:"COMPRA", qty:0.34, price:588.00}
+      ],
+      equity_series:[], realized_total:null, realized_by_symbol:{}, unrealized_total:0.41
     }
   };
 
@@ -168,7 +181,9 @@
     {key:"futuros", title:"FUTUROS", desc:"z-score 30/2.0 · 1d · BTC ETH · corto 1x", color:"#5C7268",
      waiting:'esperando señal <span class="c">±2σ</span> — evalúa cada día y elige esperar'},
     {key:"scalp",   title:"SCALP",   desc:"scalp_meanrev · 1m · SOLUSDT · experimento", color:"#DBAA46",
-     waiting:'esperando ±2σ en 1m — experimento (ya sabemos que pierde)'}
+     waiting:'esperando ±2σ en 1m — experimento (ya sabemos que pierde)'},
+    {key:"carry",   title:"CARRY",   desc:"cash-and-carry · funding · BNBUSDT · delta-neutral", color:"#4FB6C6",
+     carry:true}
   ];
 
   // ---------- helpers de formato ----------
@@ -234,6 +249,44 @@
         +'<span class="desc">'+cfg.desc+'</span></div>'
         +'<div class="wait">&gt; sin datos disponibles para este bot</div></div>';
     }
+
+    // --- tarjeta a medida del carry (market-neutral: mostrar el HEDGE, no una equity compartida) ---
+    if(cfg.carry){
+      var cbase = function(s){ return (s||"").replace(/\.PERP$/,"").replace(/USDT$/,""); };
+      var legs = (d.position||[]).filter(function(p){ return Math.abs(p.qty||0) > 1e-9; });
+      var inCarry = legs.length > 0;
+      var cTag = '<span class="tag'+(inCarry?'':' idle')+'"'+(inCarry?' style="background:'+cfg.color+'"':'')+'>'+cfg.title+'</span>';
+      var head = inCarry ? '◆ EN CARRY' : '── ESPERANDO';
+      var htail = inCarry ? 'delta-neutral · cobrando funding' : 'funding bajo el umbral (abre en ≥ 1 bps)';
+      var hedge = inCarry
+        ? legs.map(function(p){
+            var isperp = /\.PERP$/.test(p.symbol||""); var lng = p.qty>=0;
+            return '<div class="pos"><span class="px">'+(isperp?'perp':'spot')+'</span> '
+              +'<span class="'+(lng?"lng":"sht")+'">'+(lng?"▲ LONG ":"▼ SHORT ")+qtyFmt(p.qty)+" "+cbase(p.symbol)+'</span></div>';
+          }).join("")
+        : '<div class="pos"><span class="flt">── sin posición · esperando funding positivo</span></div>';
+      var cLast = d.last_trade_ts ? fmtTs(d.last_trade_ts) : "—";
+      var cKill = d.kill_ok ? '<b class="g">OK</b>' : '<b class="r">TRIP</b>';
+      var cStats = '<div class="stats"><span class="st">trades <b>'+(d.n_trades||0)+'</b></span>'
+        +'<span class="st">kill '+cKill+'</span><span class="st">última <b>'+cLast+'</b></span></div>';
+      var cTrades = "";
+      if((d.recent_trades||[]).length){
+        var cRows = d.recent_trades.slice(0,6).map(function(t){
+          var buy = /COMPRA|BUY/i.test(t.side||"") || (t.qty!=null && t.side==null && t.qty>0);
+          return '<div class="t"><span class="tm">'+fmtTs(t.ts)+'</span><span class="sd '+(buy?"buy":"sell")+'">'
+            +(buy?"BUY":"SELL")+'</span><span class="qt">'+qtyFmt(t.qty)+" "+cbase(t.symbol)+'</span>'
+            +'<span class="pr">'+price(t.price)+'</span></div>';
+        }).join("");
+        cTrades = '<div class="tl"><div class="cap">operaciones recientes</div>'+cRows+'</div>';
+      }
+      var cNote = '<p style="margin:.7rem 0 0;font-size:.72rem;color:var(--faint);line-height:1.5;">'
+        +'market-neutral: cobra el <b style="color:'+cfg.color+'">funding</b> sin exposición a la dirección. '
+        +'La equity de la cuenta es compartida con los otros bots — acá lo que importa es el <b style="color:var(--txt)">hedge</b> (las dos patas se cancelan) y el funding, no un total.</p>';
+      return '<div class="block"><div class="bh">'+cTag+'<span class="desc">'+cfg.desc+'</span></div>'
+        +'<div class="eq" style="font-size:1.5rem;color:'+(inCarry?cfg.color:'var(--lbl)')+'">'+head
+        +'<span class="tail">'+htail+'</span></div>'+cStats+hedge+cTrades+cNote+'</div>';
+    }
+
     var poss = (d.position||[]).filter(function(p){ return Math.abs(p.qty||0) > 1e-9; });
     var active = (d.n_trades||0)>0 || poss.length>0;
     var tag = active ? '<span class="tag">'+cfg.title+'</span>' : '<span class="tag idle">'+cfg.title+'</span>';
@@ -311,6 +364,7 @@
     parts.push(dot("spot", h.spot));
     parts.push(dot("futuros", h.futuros));
     if(h.scalp!==undefined) parts.push(dot("scalp", h.scalp));
+    if(h.carry!==undefined) parts.push(dot("carry", h.carry));
     if(h.monitor!==undefined) parts.push(dot("monitor", h.monitor));
     if(h.uptime) parts.push('<span class="k">uptime <b>'+esc(h.uptime)+'</b></span>');
     if(h.ws_stalls!==undefined) parts.push('<span class="k">ws-stalls <b>'+h.ws_stalls+'</b></span>');
