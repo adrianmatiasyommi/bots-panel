@@ -101,6 +101,17 @@
   .wait .c{color:var(--accent);}
   .nodata{color:var(--lbl);font-size:.82rem;}
 
+  /* total consolidado */
+  .totalbar{padding:1.05rem 1.1rem;border-top:2px solid var(--line);background:#0d1219;display:flex;justify-content:space-between;align-items:center;gap:.7rem 1rem;flex-wrap:wrap;}
+  .totalbar .lab{color:var(--txt);font-size:.82rem;letter-spacing:.05em;}
+  .totalbar .note{color:var(--faint);font-size:.7rem;margin-top:.3rem;max-width:46ch;line-height:1.5;}
+  .totalbar .amtwrap{text-align:right;margin-left:auto;}
+  .totalbar .amt{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+  .totalbar .amt .u{font-size:.72rem;color:var(--lbl);font-weight:400;}
+  .totalbar .amt.pos{color:var(--pos);} .totalbar .amt.neg{color:var(--neg);} .totalbar .amt.zero{color:var(--txt);}
+  .totalbar .word{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-top:.25rem;}
+  .totalbar .word.pos{color:var(--pos);} .totalbar .word.neg{color:var(--neg);} .totalbar .word.zero{color:var(--lbl);}
+
   /* pie */
   .foot{padding:.95rem 1.1rem 1.15rem;border-top:1px solid var(--line);color:var(--faint);font-size:.72rem;}
   .foot p{margin:.35rem 0;max-width:76ch;line-height:1.6;}
@@ -132,6 +143,7 @@
     </div>
     <div class="sys" id="sys"></div>
     <div class="body" id="body"></div>
+    <div class="totalbar" id="total"></div>
     <div class="foot" id="foot"></div>
   </div>
 </div>
@@ -418,10 +430,30 @@
     else{ txt.textContent="LIVE · "+stamp; }
   }
 
+  // ---------- total consolidado (resultado real de trading, sin freebies) ----------
+  function renderTotal(data){
+    var total=0;
+    BOTS.forEach(function(c){
+      var d=data[c.key]; if(!d||d.available===false) return;
+      var r=(d.realized_total!=null)?d.realized_total:0;
+      // El unrealized del carry es apreciación de las monedas de regalo (su
+      // posición real es delta-neutral ~0); no lo contamos como resultado.
+      var u=(!c.carry && d.unrealized_total!=null)?d.unrealized_total:0;
+      total += r+u;
+    });
+    var cls = total<-0.005?"neg":(total>0.005?"pos":"zero");
+    var word = total<-0.005?"↓ perdido":(total>0.005?"↑ ganado":"= sin cambios");
+    return '<div><div class="lab">Total · todas las operaciones</div>'
+      +'<div class="note">suma del resultado real de cada bot (realizado + posición abierta). '
+      +'No incluye las monedas de regalo del testnet ni el hedge neutral del carry.</div></div>'
+      +'<div class="amtwrap"><div class="amt '+cls+'">'+signed(total,2)+' <span class="u">USDT</span></div>'
+      +'<div class="word '+cls+'">'+word+'</div></div>';
+  }
+
   function renderFoot(data){
     var sp=data.spot||{}, rt=sp.realized_total, ut=sp.unrealized_total;
     var tot=(rt!=null?rt:0)+(ut!=null?ut:0);
-    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> está inflado por las monedas de regalo del testnet — no es ganancia. la señal limpia es el <b>resultado</b> de cada bot (arriba, en verde/rojo), no el total.</p>';
+    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> de cada bot está inflado por las monedas de regalo del testnet — no es ganancia. la señal limpia es el <b>resultado</b> (el Total de acá arriba y el de cada bot, en verde/rojo), no el equity.</p>';
     var p2='<p>se actualiza solo · la VM empuja una foto cada ~5 min → almacén → esta web. última foto: '+fmtClock(data.generated_at)+'.'+(data.demo?' <span class="amb">(mostrando demo — sin conexión al almacén)</span>':'')+'</p>';
     return p1+p2;
   }
@@ -430,6 +462,7 @@
   function paint(data){
     document.getElementById("sys").innerHTML = renderSys(data);
     document.getElementById("body").innerHTML = BOTS.map(function(c){ return renderBot(c, data[c.key]); }).join("");
+    document.getElementById("total").innerHTML = renderTotal(data);
     document.getElementById("foot").innerHTML = renderFoot(data);
     renderLive(data);
   }
