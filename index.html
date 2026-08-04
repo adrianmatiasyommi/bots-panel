@@ -48,7 +48,8 @@
   .tag{color:var(--bg);background:var(--accent);font-weight:700;font-size:.72rem;letter-spacing:.09em;padding:.16rem .52rem;border-radius:5px;flex:none;}
   .tag.idle{background:#233039;color:var(--txt);}
   .stw{font-size:.72rem;letter-spacing:.03em;color:var(--lbl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .stw.live-on{color:var(--pos);} .stw.wait{color:var(--amb);}
+  .stw.live-on{color:var(--pos);} .stw.wait{color:var(--amb);} .stw.off{color:var(--amb);}
+  .retired{margin:.1rem 0 .75rem;font-size:.73rem;color:var(--amb);line-height:1.5;border-left:2px solid var(--amb);padding-left:.6rem;border-radius:0;}
   .bres{margin-left:auto;font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;}
   .bres.pos{color:var(--pos);} .bres.neg{color:var(--neg);} .bres.zero{color:var(--txt);}
   .bres .u{font-size:.64rem;color:var(--lbl);font-weight:400;}
@@ -179,7 +180,7 @@
   var BOTS = [
     {key:"spot",    title:"SPOT",    desc:"ma_cross 50/200 · 1h · BTC ETH SOL",        color:"#43D17F", waiting:null},
     {key:"futuros", title:"FUTUROS", desc:"z-score 30/2.0 · 1d · BTC ETH · corto 1x",  color:"#7FB2A0", waiting:'esperando señal <span class="c">±2σ</span> — evalúa cada día y elige esperar'},
-    {key:"scalp",   title:"SCALP",   desc:"scalp_meanrev · 1m · SOLUSDT · experimento", color:"#DBAA46", waiting:'esperando ±2σ en 1m — experimento (ya sabemos que pierde)'},
+    {key:"scalp",   title:"SCALP",   desc:"scalp_meanrev · 1m · SOLUSDT · experimento cerrado", color:"#DBAA46", retired:true, waiting:null},
     {key:"carry",   title:"CARRY",   desc:"cash-and-carry · funding · delta-neutral",  color:"#4FB6C6", carry:true}
   ];
 
@@ -245,6 +246,7 @@
     var nT = d.n_trades||0;
     var stw = statusWord(poss.length>0, nT);
     var tag = (nT>0||poss.length) ? '<span class="tag">'+cfg.title+'</span>' : '<span class="tag idle">'+cfg.title+'</span>';
+    if(cfg.retired){ stw = {w:"⏹ detenido", c:"off"}; tag = '<span class="tag idle">'+cfg.title+'</span>'; }
 
     var rz=d.realized_total, uz=d.unrealized_total;
     var hasPnl = (rz!=null) || (uz!=null);
@@ -269,6 +271,8 @@
       posHtml = '<div class="posline"><span class="lbl">POSICIÓN</span><span class="'+(long?"lng":"sht")+'">'+(long?"▲ LONG ":"▼ SHORT ")+qtyFmt(p.qty)+" "+base(p.symbol)+'</span> <span class="px">@ '+price(p.avg)+(p.mark!=null?" · marca "+price(p.mark):"")+'</span></div>';
     } else if(cfg.waiting){
       posHtml = '<div class="wait">&gt; '+cfg.waiting+'</div>';
+    } else if(cfg.retired){
+      posHtml = '<div class="posline"><span class="lbl">POSICIÓN</span><span class="flt">— detenido · sin posición</span></div>';
     } else {
       posHtml = '<div class="posline"><span class="lbl">POSICIÓN</span><span class="flt">— flat · sin posiciones</span></div>';
     }
@@ -287,7 +291,10 @@
         +' · no realizado <span class="rz '+uzCls+'">'+signed(uz,2)+'</span>'
         +(poss.length?" (posición abierta)":" (sin posición)")+'</div>';
     }
-    var detail = '<div class="desc2">'+cfg.desc+'</div>'
+    var retiredNote = cfg.retired
+      ? '<div class="retired">◼ experimento cerrado — confirmó que pierde por comisiones. Frenado el 04/08; estos números son su foto final (congelada).</div>'
+      : "";
+    var detail = '<div class="desc2">'+cfg.desc+'</div>'+retiredNote
       +'<div class="hero"><div class="sub">'+subLine+'</div>'+sparkSVG(d.equity_series,cfg.color)+'</div>'
       +posHtml+meta+pnld+tradesLog(d.recent_trades);
 
