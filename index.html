@@ -111,6 +111,11 @@
   .totalbar .word{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.28rem;}
   .totalbar .word .tpct{font-weight:700;margin-left:.15rem;}
   .totalbar .word.pos{color:var(--pos);} .totalbar .word.neg{color:var(--neg);} .totalbar .word.zero{color:var(--lbl);}
+  .totalbar .sincewrap{font-size:.75rem;color:var(--lbl);margin-top:.5rem;display:flex;align-items:center;gap:.35rem;justify-content:flex-end;}
+  .totalbar .sincewrap b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--txt);}
+  .totalbar .sincewrap b.g{color:var(--pos);} .totalbar .sincewrap b.r{color:var(--neg);}
+  .pnl-reset{cursor:pointer;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:.04rem .34rem;user-select:none;font-size:.68rem;}
+  .pnl-reset:hover{color:var(--txt);border-color:var(--faint);}
 
   .foot{padding:.95rem 1.1rem 1.15rem;border-top:1px solid var(--line);color:var(--faint);font-size:.72rem;}
   .foot p{margin:.35rem 0;max-width:76ch;line-height:1.6;}
@@ -354,28 +359,45 @@
     return card(summary, detail);
   }
 
-  // ---------- total consolidado: resultado real, separado y con % ----------
-  function renderTotal(data){
-    var real=0, open=0, account=0;
+  // ---------- P&L real: SOLO operaciones cerradas (realizado), a prueba de freebies ----------
+  // El "no realizado" en testnet es puro ruido de monedas de regalo (SOL con costo
+  // 0, ADA con costo mezclado), asi que la unica senal limpia de "cuanta plata gane
+  // de verdad" es el REALIZADO: lo cobrado o perdido al CERRAR operaciones.
+  var PNL_KEY = "pnl_baseline_v1";
+  var _curPnl = 0;  // ultimo P&L real calculado, para el boton reset
+
+  function realizedPnl(data){
+    var real = 0;
     BOTS.forEach(function(c){
-      var d=data[c.key]; if(!d||d.available===false) return;
-      real += (d.realized_total!=null)?d.realized_total:0;
-      // el "no realizado" del carry es apreciación de las freebies (su posición
-      // real es delta-neutral ~0); no cuenta como resultado de trading.
-      open += (!c.carry && d.unrealized_total!=null)?d.unrealized_total:0;
-      account += (d.equity!=null)?d.equity:0;
+      var d = data[c.key]; if(!d || d.available===false) return;
+      real += (d.realized_total!=null) ? d.realized_total : 0;
     });
-    var total=real+open;
-    var cls = total<-0.005?"neg":(total>0.005?"pos":"zero");
-    var word = total<-0.005?"↓ perdido":(total>0.005?"↑ ganado":"= sin cambios");
-    var pct = account>0 ? (total/account*100) : null;
-    var pctHtml = pct!=null ? '<span class="tpct">'+signed(pct,2)+'%</span>' : '';
-    return '<div><div class="lab">Total · todas las operaciones</div>'
-      +'<div class="split">realizado <b class="'+(real<0?"r":(real>0?"g":""))+'">'+signed(real,2)+'</b>'
-      +' · abierto <b class="'+(open<0?"r":(open>0?"g":""))+'">'+signed(open,2)+'</b></div>'
-      +'<div class="note">resultado real de trading. El % es sobre el equity total de la cuenta (testnet, inflado por las monedas de regalo). No incluye esas freebies ni el hedge neutral del carry.</div></div>'
-      +'<div class="amtwrap"><div class="amt '+cls+'">'+signed(total,2)+' <span class="u">USDT</span></div>'
-      +'<div class="word '+cls+'">'+word+' '+pctHtml+'</div></div>';
+    return real;
+  }
+  function pnlBaseline(){ try{ var v=localStorage.getItem(PNL_KEY); return v==null?null:parseFloat(v); }catch(e){ return null; } }
+  function setPnlBaseline(v){ try{ localStorage.setItem(PNL_KEY, String(v)); }catch(e){} }
+
+  function renderTotal(data){
+    var real = realizedPnl(data);
+    _curPnl = real;
+    var base = pnlBaseline();
+    if(base===null || isNaN(base)){ setPnlBaseline(real); base = real; }  // primera carga = "hoy"
+    var since = real - base;
+
+    var cls = real<-0.005?"neg":(real>0.005?"pos":"zero");
+    var arrow = real<-0.005?"↓ ":(real>0.005?"↑ ":"= ");
+    var word = real<-0.005?"perdido":(real>0.005?"ganado":"sin cambios");
+    var sCls = since<-0.005?"r":(since>0.005?"g":"");
+
+    return '<div><div class="lab">P&amp;L real · plata de verdad</div>'
+      +'<div class="note">solo <b>operaciones cerradas</b> (lo realmente cobrado o perdido al cerrar). '
+      +'No cuenta posiciones abiertas ni las monedas de regalo del testnet — el equity de ~$76k/$82k <b>no</b> es ganancia.</div></div>'
+      +'<div class="amtwrap">'
+      +'<div class="amt '+cls+'">'+signed(real,2)+' <span class="u">USDT</span></div>'
+      +'<div class="word '+cls+'">'+arrow+word+' · acumulado</div>'
+      +'<div class="sincewrap">desde hoy <b class="'+sCls+'">'+signed(since,2)+'</b>'
+      +'<span class="pnl-reset" id="pnl-reset" title="poner el contador de hoy en cero">↺ reset</span></div>'
+      +'</div>';
   }
 
   function renderSys(data){
@@ -422,6 +444,8 @@
       '<div class="hint">▸ tocá cada bot para abrir el detalle</div>'
       + BOTS.map(function(c){ return renderBot(c, data[c.key]); }).join("");
     document.getElementById("total").innerHTML = renderTotal(data);
+    var _rb = document.getElementById("pnl-reset");
+    if(_rb){ _rb.onclick = function(){ setPnlBaseline(_curPnl); if(lastGood) paint(lastGood); }; }
     document.getElementById("foot").innerHTML = renderFoot(data);
     renderLive(data);
   }
