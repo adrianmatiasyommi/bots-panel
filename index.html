@@ -135,7 +135,86 @@
     .totalbar .amt{font-size:1.7rem;}
     .foot{padding:.85rem .85rem 1rem;}
   }
+
+  /* ===== splash de arranque (overlay, scopeado bajo #splash) ===== */
+  #splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:1.4rem;
+    background:radial-gradient(120% 80% at 50% 38%, rgba(67,209,127,.06), transparent 60%), var(--bg);
+    transition:opacity .55s ease, transform .55s ease;}
+  #splash.gone{opacity:0;transform:scale(1.03);pointer-events:none;}
+  #splash::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px);}
+  #splash .boot{width:min(560px,100%);position:relative;z-index:1;}
+  #splash .mk{display:flex;align-items:baseline;gap:.55rem;justify-content:center;margin-bottom:.35rem;}
+  #splash .mk .g{color:var(--accent);font-size:2.9rem;line-height:1;filter:drop-shadow(0 0 14px rgba(67,209,127,.45));}
+  #splash .mk b{color:var(--bright);font-size:2.5rem;font-weight:700;letter-spacing:.02em;}
+  #splash .mk .cu{color:var(--accent);font-size:2rem;animation:spblink 1.05s step-end infinite;}
+  #splash .tg{text-align:center;color:var(--lbl);font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:1.7rem;}
+  #splash .tg b{color:#2C8F5D;font-weight:400;}
+  #splash .box{border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#0c1218,#0a0e13);overflow:hidden;box-shadow:0 24px 60px -30px rgba(0,0,0,.9);}
+  #splash .bx-bar{display:flex;align-items:center;gap:.5rem;padding:.55rem .85rem;border-bottom:1px solid var(--line2);color:var(--lbl);font-size:.7rem;letter-spacing:.05em;}
+  #splash .bx-bar .dot{width:8px;height:8px;border-radius:50%;background:#20303a;}
+  #splash .bx-bar .dot.on{background:var(--accent);box-shadow:0 0 8px rgba(67,209,127,.6);}
+  #splash .bx-bar .tt{margin-left:auto;}
+  #splash .lg{padding:.9rem 1rem 1rem;font-size:.86rem;line-height:1.9;}
+  #splash .rw{display:grid;grid-template-columns:1.1rem 1fr auto;gap:.5rem;align-items:baseline;}
+  #splash .rw .p{color:#2C8F5D;}
+  #splash .rw .m{color:var(--txt);} #splash .rw .m i{color:var(--lbl);font-style:normal;}
+  #splash .rw .ok{color:var(--accent);font-weight:700;justify-self:end;}
+  #splash .rw.hd .m{color:var(--lbl);}
+  #splash .pbwrap{margin:.85rem .2rem .2rem;height:4px;border-radius:3px;background:#121a21;overflow:hidden;}
+  #splash .pbfill{height:100%;width:0;background:linear-gradient(90deg,#2C8F5D,var(--accent));border-radius:3px;}
+  #splash .rd{display:flex;align-items:center;gap:.5rem;margin-top:.9rem;color:var(--accent);font-size:.82rem;opacity:0;}
+  #splash .rd .d{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  #splash .rd .c{color:var(--lbl);margin-left:auto;font-size:.74rem;}
+  #splash .ent{display:flex;justify-content:center;margin-top:1.5rem;opacity:0;}
+  #splash .ebtn{appearance:none;border:1px solid #2C8F5D;background:rgba(67,209,127,.07);color:var(--accent);font-family:var(--mono);font-size:.9rem;letter-spacing:.08em;padding:.6rem 1.5rem;border-radius:8px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;}
+  #splash .ebtn:hover{background:rgba(67,209,127,.14);border-color:var(--accent);}
+  #splash .ebtn:active{transform:scale(.97);}
+  #splash .ebtn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  @keyframes spblink{0%,100%{opacity:1;}50%{opacity:0;}}
+  @media (prefers-reduced-motion:no-preference){
+    #splash .mk{opacity:0;animation:sppop .7s cubic-bezier(.2,.9,.25,1) .1s forwards;}
+    #splash .tg{opacity:0;animation:spfade .6s ease .5s forwards;}
+    #splash .box{opacity:0;transform:translateY(8px);animation:sprise .6s ease .55s forwards;}
+    #splash .rw{opacity:0;transform:translateY(4px);animation:spreveal .45s ease forwards;}
+    #splash .rw.hd{animation-delay:.8s;} #splash .rw.r1{animation-delay:.95s;} #splash .rw.r2{animation-delay:1.25s;}
+    #splash .rw.r3{animation-delay:1.55s;} #splash .rw.r4{animation-delay:1.85s;} #splash .rw.r5{animation-delay:2.15s;}
+    #splash .rw .ok{opacity:0;animation:spok .3s ease forwards;}
+    #splash .rw.r1 .ok{animation-delay:1.15s;} #splash .rw.r2 .ok{animation-delay:1.45s;} #splash .rw.r3 .ok{animation-delay:1.75s;}
+    #splash .rw.r4 .ok{animation-delay:2.05s;} #splash .rw.r5 .ok{animation-delay:2.35s;}
+    #splash .pbfill{animation:spfill 1.7s cubic-bezier(.4,0,.2,1) .8s forwards;}
+    #splash .rd{animation:spfade .5s ease 2.55s forwards;}
+    #splash .ent{animation:spfade .5s ease 2.85s forwards;}
+    @keyframes sppop{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+    @keyframes spfade{to{opacity:1;}}
+    @keyframes sprise{to{opacity:1;transform:none;}}
+    @keyframes spreveal{to{opacity:1;transform:none;}}
+    @keyframes spok{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:scale(1);}}
+    @keyframes spfill{to{width:100%;}}
+  }
+  @media (prefers-reduced-motion:reduce){ #splash .pbfill{width:100%;} #splash .rd,#splash .ent{opacity:1;} }
 </style>
+
+<div id="splash">
+  <div class="boot">
+    <div class="mk"><span class="g">◢</span><b>bots</b><span class="cu">▍</span></div>
+    <div class="tg">trading automatizado · <b>binance testnet</b></div>
+    <div class="box">
+      <div class="bx-bar"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span>arranque</span><span class="tt">v1 · paper</span></div>
+      <div class="lg">
+        <div class="rw hd"><span class="p">»</span><span class="m">iniciando sistema…</span><span></span></div>
+        <div class="rw r1"><span class="p">»</span><span class="m">conectando a binance testnet</span><span class="ok">✓</span></div>
+        <div class="rw r2"><span class="p">»</span><span class="m">spot <i>· ma_cross 50/200</i></span><span class="ok">✓</span></div>
+        <div class="rw r3"><span class="p">»</span><span class="m">futuros <i>· z-score ±2σ</i></span><span class="ok">✓</span></div>
+        <div class="rw r4"><span class="p">»</span><span class="m">carry <i>· funding delta-neutral</i></span><span class="ok">✓</span></div>
+        <div class="rw r5"><span class="p">»</span><span class="m">monitor <i>· telegram</i></span><span class="ok">✓</span></div>
+        <div class="pbwrap"><div class="pbfill"></div></div>
+        <div class="rd"><span class="d"></span> listo · 3 bots en línea + monitor <span class="c">uptime 3s</span></div>
+      </div>
+    </div>
+    <div class="ent"><button class="ebtn" id="splash-enter" type="button">entrar al panel ▸</button></div>
+  </div>
+</div>
 
 <div class="scr">
   <div class="win">
@@ -463,5 +542,27 @@
   }
   load();
   setInterval(load, 60000);
+})();
+</script>
+
+<script>
+(function(){
+  var sp=document.getElementById("splash");
+  if(!sp) return;
+  // ya lo viste en esta sesion del navegador -> saltar directo al dashboard
+  try{ if(sessionStorage.getItem("bots_splash_seen")==="1"){ sp.parentNode.removeChild(sp); return; } }catch(e){}
+  var done=false;
+  function enter(){
+    if(done) return; done=true;
+    try{ sessionStorage.setItem("bots_splash_seen","1"); }catch(e){}
+    sp.classList.add("gone");
+    setTimeout(function(){ if(sp.parentNode) sp.parentNode.removeChild(sp); }, 650);
+  }
+  var b=document.getElementById("splash-enter");
+  if(b) b.addEventListener("click", function(e){ e.stopPropagation(); enter(); });
+  sp.addEventListener("click", enter);  // tocar en cualquier lado entra
+  // auto-entra como red de seguridad para que nunca quede trabado
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  setTimeout(enter, reduce ? 2200 : 7000);
 })();
 </script>
