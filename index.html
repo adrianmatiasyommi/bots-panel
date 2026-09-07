@@ -335,13 +335,22 @@
     var rz=d.realized_total, uz=d.unrealized_total;
     var hasPnl = (rz!=null) || (uz!=null);
 
-    var resHtml, subLine;
-    if(hasPnl){
+    // Numero grande = "desde la limpieza": Δ del equity de este bot desde la linea
+    // base fija (CLEANUP), consistente con el Total (que suma estos deltas). El
+    // realizado+no-realizado viejo (contaminado por testnet) queda en el detalle.
+    var resHtml, subLine, rcls;
+    var base0 = CLEANUP.equity[cfg.key];
+    var s=d.equity_series||[]; var pc=(s.length>=2&&s[0])?(s[s.length-1]-s[0])/s[0]*100:null;
+    var trend = pc==null?"":(Math.abs(pc)<0.1?" · plano en la ventana":" · "+signed(pc,1)+"% en la ventana");
+    if(base0!=null && d.equity!=null){
+      var since = d.equity - base0;
+      rcls = since<-0.005?"neg":(since>0.005?"pos":"zero");
+      resHtml = '<span class="bres '+rcls+'">'+signed(since,2)+' <span class="u">USDT</span></span>';
+      subLine = 'desde la limpieza ('+CLEANUP.date+') · equity '+grp(d.equity,0)+trend;
+    } else if(hasPnl){
       var pnl=(rz||0)+(uz||0);
-      var rcls = pnl<-0.005?"neg":(pnl>0.005?"pos":"zero");
+      rcls = pnl<-0.005?"neg":(pnl>0.005?"pos":"zero");
       resHtml = '<span class="bres '+rcls+'">'+signed(pnl,2)+' <span class="u">USDT</span></span>';
-      var s=d.equity_series||[]; var pc=(s.length>=2&&s[0])?(s[s.length-1]-s[0])/s[0]*100:null;
-      var trend = pc==null?"":(Math.abs(pc)<0.1?" · plano en la ventana":" · "+signed(pc,1)+"% en la ventana");
       subLine = 'resultado neto (cerrado + abierto) · equity '+grp(d.equity,0)+trend;
     } else {
       resHtml = '<span class="bres zero">'+grp(d.equity,0)+' <span class="u">eq</span></span>';
@@ -396,9 +405,21 @@
     perps.forEach(function(p){ carrySpot[base(p.symbol)] = (carrySpot[base(p.symbol)]||0) + Math.abs(p.qty); });
     var activeBases = perps.map(function(p){ return base(p.symbol); }).filter(function(v,i,a){ return a.indexOf(v)===i; });
 
-    var resHtml = inCarry
-      ? '<span class="bres" style="color:'+cfg.color+';font-size:.95rem">◆ '+activeBases.join(" · ")+'</span>'
-      : '<span class="bres zero" style="font-size:.95rem">esperando</span>';
+    // "desde la limpieza": Δ equity del carry desde la linea base (consistente con
+    // el Total y los otros bots). El simbolo activo sigue visible en el estado y en
+    // el detalle. OJO: el equity del carry incluye su inventario freebie, asi que
+    // este numero se mueve con esos precios ademas del funding.
+    var cbase = CLEANUP.equity[cfg.key];
+    var csince = (cbase!=null && d.equity!=null) ? d.equity - cbase : null;
+    var resHtml;
+    if(csince!=null){
+      var ccls = csince<-0.005?"neg":(csince>0.005?"pos":"zero");
+      resHtml = '<span class="bres '+ccls+'">'+signed(csince,2)+' <span class="u">USDT</span></span>';
+    } else {
+      resHtml = inCarry
+        ? '<span class="bres" style="color:'+cfg.color+';font-size:.95rem">◆ '+activeBases.join(" · ")+'</span>'
+        : '<span class="bres zero" style="font-size:.95rem">esperando</span>';
+    }
     var summary = tag+'<span class="stw '+stw.c+'">'+stw.w+'</span>'+resHtml;
 
     var legsHtml;
@@ -529,7 +550,7 @@
   }
 
   function renderFoot(data){
-    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> está inflado por las monedas de regalo del testnet — no es ganancia. Por eso el Total de arriba se mide <b>desde la limpieza</b> ('+CLEANUP.date+'): el cambio de valor de las cuentas desde esa línea, arrancando en $0. Los resultados por-bot de abajo son del testnet viejo (contaminados), quedan de referencia.</p>';
+    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> está inflado por las monedas de regalo del testnet — no es ganancia. Por eso <b>todo</b> se mide <b>desde la limpieza</b> ('+CLEANUP.date+'): el Total y cada bot muestran el cambio de valor de sus cuentas desde esa línea, arrancando en $0. El realizado/no-realizado viejo del testnet queda en el detalle de cada bot, como referencia.</p>';
     var p2='<p>se actualiza solo · la VM empuja una foto cada ~5 min → almacén → esta web. tocá cada bot para ver el detalle. última foto: '+fmtClock(data.generated_at)+'.'+(data.demo?' <span class="amb">(mostrando demo — sin conexión al almacén)</span>':'')+'</p>';
     return p1+p2;
   }
