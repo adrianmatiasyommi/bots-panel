@@ -456,26 +456,43 @@
   function pnlBaseline(){ try{ var v=localStorage.getItem(PNL_KEY); return v==null?null:parseFloat(v); }catch(e){ return null; } }
   function setPnlBaseline(v){ try{ localStorage.setItem(PNL_KEY, String(v)); }catch(e){} }
 
+  // ---------- Limpieza / re-baseline (2026-09-07) ----------
+  // El realizado por-bot es POR-RUN (se resetea al reiniciar un bot) y esta
+  // contaminado por freebies de testnet (avg=0): no sirve de linea base estable.
+  // Lo unico continuo y a prueba de reinicios es el EQUITY (se reconcilia del
+  // exchange en cada arranque). La "limpieza" mide el CAMBIO de valor total de las
+  // cuentas desde esta linea, arrancando en $0; los numeros viejos de testnet
+  // quedan atras (se muestran chicos, etiquetados como no confiables).
+  var CLEANUP = { date:"2026-09-07",
+    equity:{ spot:83564.20, futuros:2831.29, scalp:4798.58, carry:90977.38 } };
+  function sinceCleanup(data){
+    var since = 0, any = false;
+    BOTS.forEach(function(c){
+      var d = data[c.key], b = CLEANUP.equity[c.key];
+      if(b==null) return;                                       // bot sin linea base
+      if(!d || d.available===false || d.equity==null) return;   // no restar lo ausente
+      since += d.equity - b; any = true;
+    });
+    return any ? since : null;
+  }
+
   function renderTotal(data){
-    var real = realizedPnl(data);
-    _curPnl = real;
-    var base = pnlBaseline();
-    if(base===null || isNaN(base)){ setPnlBaseline(real); base = real; }  // primera carga = "hoy"
-    var since = real - base;
-
-    var cls = real<-0.005?"neg":(real>0.005?"pos":"zero");
-    var arrow = real<-0.005?"↓ ":(real>0.005?"↑ ":"= ");
-    var word = real<-0.005?"perdido":(real>0.005?"ganado":"sin cambios");
-    var sCls = since<-0.005?"r":(since>0.005?"g":"");
-
-    return '<div><div class="lab">P&amp;L real · plata de verdad</div>'
-      +'<div class="note">solo <b>operaciones cerradas</b> (lo realmente cobrado o perdido al cerrar). '
-      +'No cuenta posiciones abiertas ni las monedas de regalo del testnet — el equity de ~$76k/$82k <b>no</b> es ganancia.</div></div>'
+    var since = sinceCleanup(data);
+    var hist = realizedPnl(data);   // realizado historico (testnet, contaminado)
+    if(since===null){
+      return '<div><div class="lab">P&amp;L desde la limpieza</div>'
+        +'<div class="note">sin datos de equity todavia.</div></div>';
+    }
+    var cls = since<-0.005?"neg":(since>0.005?"pos":"zero");
+    var arrow = since<-0.005?"↓ ":(since>0.005?"↑ ":"= ");
+    var word = since<-0.005?"perdido":(since>0.005?"ganado":"sin cambios");
+    return '<div><div class="lab">🧹 P&amp;L desde la limpieza · '+CLEANUP.date+'</div>'
+      +'<div class="note">el <b>cambio de valor de las cuentas</b> desde la linea de limpieza (arranca en $0). '
+      +'Es lo unico a prueba de reinicios; el realizado viejo de testnet (freebies + avg=0) quedo atras.</div></div>'
       +'<div class="amtwrap">'
-      +'<div class="amt '+cls+'">'+signed(real,2)+' <span class="u">USDT</span></div>'
-      +'<div class="word '+cls+'">'+arrow+word+' · acumulado</div>'
-      +'<div class="sincewrap">desde hoy <b class="'+sCls+'">'+signed(since,2)+'</b>'
-      +'<span class="pnl-reset" id="pnl-reset" title="poner el contador de hoy en cero">↺ reset</span></div>'
+      +'<div class="amt '+cls+'">'+signed(since,2)+' <span class="u">USDT</span></div>'
+      +'<div class="word '+cls+'">'+arrow+word+' · desde la limpieza</div>'
+      +'<div class="sincewrap">historico testnet (no confiable) <b class="r">'+signed(hist,2)+'</b></div>'
       +'</div>';
   }
 
@@ -512,7 +529,7 @@
   }
 
   function renderFoot(data){
-    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> de cada bot está inflado por las monedas de regalo del testnet — no es ganancia. la señal limpia es el <b>resultado</b> (el Total de acá arriba y el de cada bot, en verde/rojo), no el equity.</p>';
+    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> está inflado por las monedas de regalo del testnet — no es ganancia. Por eso el Total de arriba se mide <b>desde la limpieza</b> ('+CLEANUP.date+'): el cambio de valor de las cuentas desde esa línea, arrancando en $0. Los resultados por-bot de abajo son del testnet viejo (contaminados), quedan de referencia.</p>';
     var p2='<p>se actualiza solo · la VM empuja una foto cada ~5 min → almacén → esta web. tocá cada bot para ver el detalle. última foto: '+fmtClock(data.generated_at)+'.'+(data.demo?' <span class="amb">(mostrando demo — sin conexión al almacén)</span>':'')+'</p>';
     return p1+p2;
   }
