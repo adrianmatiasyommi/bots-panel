@@ -335,27 +335,11 @@
     var rz=d.realized_total, uz=d.unrealized_total;
     var hasPnl = (rz!=null) || (uz!=null);
 
-    // Numero grande = "desde la limpieza": Δ del equity de este bot desde la linea
-    // base fija (CLEANUP), consistente con el Total (que suma estos deltas). El
-    // realizado+no-realizado viejo (contaminado por testnet) queda en el detalle.
-    var resHtml, subLine, rcls;
-    var base0 = CLEANUP.equity[cfg.key];
-    var s=d.equity_series||[]; var pc=(s.length>=2&&s[0])?(s[s.length-1]-s[0])/s[0]*100:null;
-    var trend = pc==null?"":(Math.abs(pc)<0.1?" · plano en la ventana":" · "+signed(pc,1)+"% en la ventana");
-    if(base0!=null && d.equity!=null){
-      var since = d.equity - base0;
-      rcls = since<-0.005?"neg":(since>0.005?"pos":"zero");
-      resHtml = '<span class="bres '+rcls+'">'+signed(since,2)+' <span class="u">USDT</span></span>';
-      subLine = 'desde la limpieza ('+CLEANUP.date+') · equity '+grp(d.equity,0)+trend;
-    } else if(hasPnl){
-      var pnl=(rz||0)+(uz||0);
-      rcls = pnl<-0.005?"neg":(pnl>0.005?"pos":"zero");
-      resHtml = '<span class="bres '+rcls+'">'+signed(pnl,2)+' <span class="u">USDT</span></span>';
-      subLine = 'resultado neto (cerrado + abierto) · equity '+grp(d.equity,0)+trend;
-    } else {
-      resHtml = '<span class="bres zero">'+grp(d.equity,0)+' <span class="u">eq</span></span>';
-      subLine = 'equity de la cuenta · sin operar aún';
-    }
+    // Testnet no medible (cuenta compartida spot/carry + freebies): la cabecera
+    // muestra ESTADO, no un numero de P&L que miente. El equity va como referencia
+    // neutra (chico, sin color). El realizado/no-realizado queda en el detalle.
+    var resHtml = '<span class="bres zero" style="font-size:.9rem;opacity:.75">'+grp(d.equity,0)+' <span class="u">eq testnet</span></span>';
+    var subLine = 'equity testnet '+grp(d.equity,0)+' · no medible (cuenta compartida + regalos)';
     var summary = tag+'<span class="stw '+stw.c+'">'+stw.w+'</span>'+resHtml;
 
     var posHtml;
@@ -405,21 +389,11 @@
     perps.forEach(function(p){ carrySpot[base(p.symbol)] = (carrySpot[base(p.symbol)]||0) + Math.abs(p.qty); });
     var activeBases = perps.map(function(p){ return base(p.symbol); }).filter(function(v,i,a){ return a.indexOf(v)===i; });
 
-    // "desde la limpieza": Δ equity del carry desde la linea base (consistente con
-    // el Total y los otros bots). El simbolo activo sigue visible en el estado y en
-    // el detalle. OJO: el equity del carry incluye su inventario freebie, asi que
-    // este numero se mueve con esos precios ademas del funding.
-    var cbase = CLEANUP.equity[cfg.key];
-    var csince = (cbase!=null && d.equity!=null) ? d.equity - cbase : null;
-    var resHtml;
-    if(csince!=null){
-      var ccls = csince<-0.005?"neg":(csince>0.005?"pos":"zero");
-      resHtml = '<span class="bres '+ccls+'">'+signed(csince,2)+' <span class="u">USDT</span></span>';
-    } else {
-      resHtml = inCarry
-        ? '<span class="bres" style="color:'+cfg.color+';font-size:.95rem">◆ '+activeBases.join(" · ")+'</span>'
-        : '<span class="bres zero" style="font-size:.95rem">esperando</span>';
-    }
+    // Testnet no medible: la cabecera muestra el simbolo activo (estado), no un
+    // numero de equity que miente. El funding realizado del carry va en el Total.
+    var resHtml = inCarry
+      ? '<span class="bres" style="color:'+cfg.color+';font-size:.95rem">◆ '+activeBases.join(" · ")+'</span>'
+      : '<span class="bres zero" style="font-size:.95rem">esperando</span>';
     var summary = tag+'<span class="stw '+stw.c+'">'+stw.w+'</span>'+resHtml;
 
     var legsHtml;
@@ -498,22 +472,22 @@
   }
 
   function renderTotal(data){
-    var since = sinceCleanup(data);
-    var hist = realizedPnl(data);   // realizado historico (testnet, contaminado)
-    if(since===null){
-      return '<div><div class="lab">P&amp;L desde la limpieza</div>'
-        +'<div class="note">sin datos de equity todavia.</div></div>';
-    }
-    var cls = since<-0.005?"neg":(since>0.005?"pos":"zero");
-    var arrow = since<-0.005?"↓ ":(since>0.005?"↑ ":"= ");
-    var word = since<-0.005?"perdido":(since>0.005?"ganado":"sin cambios");
-    return '<div><div class="lab">🧹 P&amp;L desde la limpieza · '+CLEANUP.date+'</div>'
-      +'<div class="note">el <b>cambio de valor de las cuentas</b> desde la linea de limpieza (arranca en $0). '
-      +'Es lo unico a prueba de reinicios; el realizado viejo de testnet (freebies + avg=0) quedo atras.</div></div>'
+    // El equity de este testnet NO es medible: spot y carry comparten la MISMA
+    // cuenta (doble-conteo) + monedas de regalo + re-repartos del exchange en cada
+    // reinicio. Cualquier "P&L por equity" miente (un restart movio ~$74k entre
+    // bolsillos, no fue plata perdida). Lo unico aproximable es el funding del
+    // carry (realizado de sus cierres). El numero real llega con el paper de mainnet.
+    var c = data.carry||{};
+    var fund = (c.realized_total!=null) ? c.realized_total : null;
+    var fcls = fund==null?"zero":(fund<-0.005?"neg":(fund>0.005?"pos":"zero"));
+    var fundHtml = (fund==null)
+      ? '<span class="amt zero">— <span class="u">USDT</span></span>'
+      : '<span class="amt '+fcls+'">'+signed(fund,2)+' <span class="u">USDT</span></span>';
+    return '<div><div class="lab">🧪 testnet · sin P&amp;L confiable</div>'
+      +'<div class="note">spot y carry <b>comparten la misma cuenta</b> de testnet + monedas de regalo + re-repartos del exchange: el <b>equity no es medible</b> (un reinicio movió ~$74k entre bolsillos contables — <b>no</b> fue plata perdida; el carry opera $200 por vez). El número real llega con el <b>paper de mainnet</b> (cuenta propia, sin regalos) — en preparación.</div></div>'
       +'<div class="amtwrap">'
-      +'<div class="amt '+cls+'">'+signed(since,2)+' <span class="u">USDT</span></div>'
-      +'<div class="word '+cls+'">'+arrow+word+' · desde la limpieza</div>'
-      +'<div class="sincewrap">historico testnet (no confiable) <b class="r">'+signed(hist,2)+'</b></div>'
+      + fundHtml
+      +'<div class="word '+fcls+'">funding del carry · lo único aproximable hoy (testnet)</div>'
       +'</div>';
   }
 
@@ -550,7 +524,7 @@
   }
 
   function renderFoot(data){
-    var p1='<p><span class="amb">testnet · plata de juguete.</span> el <b>equity</b> está inflado por las monedas de regalo del testnet — no es ganancia. Por eso <b>todo</b> se mide <b>desde la limpieza</b> ('+CLEANUP.date+'): el Total y cada bot muestran el cambio de valor de sus cuentas desde esa línea, arrancando en $0. El realizado/no-realizado viejo del testnet queda en el detalle de cada bot, como referencia.</p>';
+    var p1='<p><span class="amb">testnet · plata de juguete.</span> spot y carry <b>comparten la misma cuenta</b> y hay monedas de regalo + re-repartos del exchange, así que <b>el equity no es un P&amp;L medible</b> — por eso las tarjetas muestran estado, no un número que engaña. Lo único aproximable es el <b>funding del carry</b> (arriba). El número real y creíble llega con el <b>paper de mainnet</b> (cuenta propia, sin regalos), en preparación.</p>';
     var p2='<p>se actualiza solo · la VM empuja una foto cada ~5 min → almacén → esta web. tocá cada bot para ver el detalle. última foto: '+fmtClock(data.generated_at)+'.'+(data.demo?' <span class="amb">(mostrando demo — sin conexión al almacén)</span>':'')+'</p>';
     return p1+p2;
   }
