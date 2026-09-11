@@ -104,6 +104,15 @@
   .totalbar .split b{font-weight:400;color:var(--txt);font-variant-numeric:tabular-nums;}
   .totalbar .split b.g{color:var(--pos);} .totalbar .split b.r{color:var(--neg);}
   .totalbar .note{color:var(--faint);font-size:.7rem;margin-top:.35rem;max-width:48ch;line-height:1.5;}
+  /* MAINNET PAPER — the trustworthy section, tinted green to stand apart from testnet */
+  .mnp{padding:.9rem 1.1rem;border-bottom:1px solid var(--line);background:rgba(67,209,127,.06);border-left:3px solid var(--pos);}
+  .mnp-head{color:var(--pos);font-size:.92rem;font-weight:700;letter-spacing:.03em;}
+  .mnp-note{color:var(--lbl);font-size:.72rem;margin:.3rem 0 .75rem;line-height:1.5;max-width:62ch;}
+  .mnp-rows{display:flex;flex-direction:column;gap:.45rem;}
+  .mnp-row{display:flex;align-items:baseline;gap:.55rem;}
+  .mnp-bot{font-weight:700;font-size:.8rem;letter-spacing:.05em;min-width:5rem;flex:none;}
+  .mnp-desc{color:var(--lbl);font-size:.72rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mnp-total{margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem;color:var(--txt);letter-spacing:.03em;}
   .totalbar .amtwrap{text-align:right;margin-left:auto;}
   .totalbar .amt{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
   .totalbar .amt .u{font-size:.72rem;color:var(--lbl);font-weight:400;}
@@ -223,6 +232,7 @@
       <span class="live" id="live"><span class="d"></span><span id="live-txt">conectando…</span></span>
     </div>
     <div class="sys" id="sys"></div>
+    <div class="mnp" id="mainnet"></div>
     <div class="body" id="body"></div>
     <div class="totalbar" id="total"></div>
     <div class="foot" id="foot"></div>
@@ -471,6 +481,47 @@
     return any ? since : null;
   }
 
+  // ---------- MAINNET PAPER: el P&L CONFIABLE (cuentas limpias vs precios reales) ----------
+  // A diferencia del testnet (freebies + cuenta compartida = no medible), cada bot
+  // sim corre una cuenta LIMPIA de $10.000 contra precios reales de mainnet con
+  // ejecucion simulada -> su P&L (equity - capital inicial) SI se puede creer.
+  var MNP_START = 10000;  // broker.starting_cash de cada bot sim
+  var MNP_BOTS = [
+    {key:"spot",    title:"SPOT",    desc:"ma_cross 50/200 · 1h"},
+    {key:"futuros", title:"FUTUROS", desc:"z-score 30/2.0 · 1d · corto 1x"},
+    {key:"carry",   title:"CARRY",   desc:"funding · delta-neutral"},
+  ];
+  function renderMainnetPaper(data){
+    var mp = data.mainnet_paper;
+    if(!mp || typeof mp !== "object"){
+      return '<div class="mnp-head">🟢 MAINNET PAPER · P&amp;L real</div>'
+        +'<div class="mnp-note">⏳ esperando el primer dato — los servicios de paper de mainnet están en despliegue. '
+        +'Cuentas limpias de $'+grp(MNP_START,0)+' c/u contra precios reales de mainnet: acá va el número que se puede creer.</div>';
+    }
+    var rows="", total=0, any=false;
+    MNP_BOTS.forEach(function(c){
+      var d = mp[c.key];
+      if(!d || d.available===false || d.equity==null){
+        rows += '<div class="mnp-row"><span class="mnp-bot">'+c.title+'</span>'
+          +'<span class="mnp-desc">'+c.desc+'</span><span class="bres zero">—</span></div>';
+        return;
+      }
+      var pnl = d.equity - MNP_START; total += pnl; any = true;
+      var cls = pnl<-0.005?"neg":(pnl>0.005?"pos":"zero");
+      rows += '<div class="mnp-row"><span class="mnp-bot">'+c.title+'</span>'
+        +'<span class="mnp-desc">'+c.desc+'</span>'
+        +'<span class="bres '+cls+'">'+signed(pnl,2)+' <span class="u">USDT</span></span></div>';
+    });
+    var tcls = total<-0.005?"neg":(total>0.005?"pos":"zero");
+    var totalHtml = any
+      ? '<div class="mnp-total">P&amp;L total <span class="amt '+tcls+'">'+signed(total,2)+' <span class="u">USDT</span></span></div>'
+      : '';
+    return '<div class="mnp-head">🟢 MAINNET PAPER · P&amp;L real</div>'
+      +'<div class="mnp-note">cuentas limpias de $'+grp(MNP_START,0)+' c/u vs precios <b>reales de mainnet</b> — sin freebies, '
+      +'sin cuenta compartida. <b>Este es el número que se puede creer</b> (desde el arranque de cada servicio).</div>'
+      +'<div class="mnp-rows">'+rows+'</div>'+totalHtml;
+  }
+
   function renderTotal(data){
     // El equity de este testnet NO es medible: spot y carry comparten la MISMA
     // cuenta (doble-conteo) + monedas de regalo + re-repartos del exchange en cada
@@ -531,6 +582,7 @@
 
   function paint(data){
     document.getElementById("sys").innerHTML = renderSys(data);
+    document.getElementById("mainnet").innerHTML = renderMainnetPaper(data);
     document.getElementById("body").innerHTML =
       '<div class="hint">▸ tocá cada bot para abrir el detalle</div>'
       + BOTS.map(function(c){ return renderBot(c, data[c.key]); }).join("");
