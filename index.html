@@ -113,8 +113,16 @@
   .mnp-bot{font-weight:700;font-size:.8rem;letter-spacing:.05em;min-width:5rem;flex:none;}
   .mnp-desc{color:var(--lbl);font-size:.72rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mnp-total{margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem;color:var(--txt);letter-spacing:.03em;}
+  /* MAINNET hero: el numero real, protagonista */
+  .mnp-hero{font-size:2.3rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;margin:.4rem 0 .1rem;}
+  .mnp-hero .u{font-size:.8rem;color:var(--lbl);font-weight:400;}
+  .mnp-hero.pos{color:var(--pos);} .mnp-hero.neg{color:var(--neg);} .mnp-hero.zero{color:var(--txt);}
+  .mnp-heroword{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.6rem;}
+  .mnp-heroword.pos{color:var(--pos);} .mnp-heroword.neg{color:var(--neg);} .mnp-heroword.zero{color:var(--lbl);}
+  .mnp-heroword b{color:var(--pos);font-weight:700;text-transform:none;}
+  .mnp-rows{margin-top:.5rem;}
   .totalbar .amtwrap{text-align:right;margin-left:auto;}
-  .totalbar .amt{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+  .totalbar .amt{font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
   .totalbar .amt .u{font-size:.72rem;color:var(--lbl);font-weight:400;}
   .totalbar .amt.pos{color:var(--pos);} .totalbar .amt.neg{color:var(--neg);} .totalbar .amt.zero{color:var(--txt);}
   .totalbar .word{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.28rem;}
@@ -141,7 +149,8 @@
     .spark{width:100%;max-width:100%;height:40px;margin-top:.55rem;}
     .hero{gap:.3rem;}
     .t{grid-template-columns:4.9rem 2.5rem 1fr auto;gap:.35rem;font-size:.73rem;}
-    .totalbar .amt{font-size:1.7rem;}
+    .totalbar .amt{font-size:1.05rem;}
+    .mnp-hero{font-size:1.9rem;}
     .foot{padding:.85rem .85rem 1rem;}
   }
 
@@ -513,13 +522,12 @@
         +'<span class="bres '+cls+'">'+signed(pnl,2)+' <span class="u">USDT</span></span></div>';
     });
     var tcls = total<-0.005?"neg":(total>0.005?"pos":"zero");
-    var totalHtml = any
-      ? '<div class="mnp-total">P&amp;L total <span class="amt '+tcls+'">'+signed(total,2)+' <span class="u">USDT</span></span></div>'
-      : '';
+    var word = total<-0.005?"↓ perdido":(total>0.005?"↑ ganado":"= sin cambios");
     return '<div class="mnp-head">🟢 MAINNET PAPER · P&amp;L real</div>'
-      +'<div class="mnp-note">cuentas limpias de $'+grp(MNP_START,0)+' c/u vs precios <b>reales de mainnet</b> — sin freebies, '
-      +'sin cuenta compartida. <b>Este es el número que se puede creer</b> (desde el arranque de cada servicio).</div>'
-      +'<div class="mnp-rows">'+rows+'</div>'+totalHtml;
+      +'<div class="mnp-hero '+tcls+'">'+signed(total,2)+' <span class="u">USDT</span></div>'
+      +'<div class="mnp-heroword '+tcls+'">'+word+' · total desde el arranque · <b>el número que se puede creer</b></div>'
+      +'<div class="mnp-note">cuentas limpias de $'+grp(MNP_START,0)+' c/u vs precios <b>reales de mainnet</b> — sin freebies, sin cuenta compartida.</div>'
+      +'<div class="mnp-rows">'+rows+'</div>';
   }
 
   function renderTotal(data){
